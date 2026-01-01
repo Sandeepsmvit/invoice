@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Zepto R-E Invoice Form</title>
+<style>
+body {
+    background-color: #6a0dad;
+    color: white;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+.container {
+    width: 450px;
+    margin: 40px auto;
+    padding: 20px;
+    background-color: #7f00ff;
+    border-radius: 12px;
+}
+h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 15px;
+    row-gap: 10px;
+    margin-bottom: 20px;
+}
+.form-grid label {
+    display: block;
+    margin-bottom: 5px;
+}
+input[type="text"], input[type="email"], input[type="date"], select {
+    width: 100%;
+    padding: 6px;
+    border-radius: 4px;
+    border: none;
+}
+.component {
+    margin-bottom: 15px;
+    background-color: #8a2be2;
+    padding: 8px 10px;
+    border-radius: 6px;
+}
+.component-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.file-drop {
+    margin-left: 10px;
+    padding: 5px;
+    border: 2px dashed #fff;
+    border-radius: 6px;
+    text-align: center;
+    font-size: 13px;
+    cursor: pointer;
+    background-color: rgba(255,255,255,0.05);
+}
+.file-drop.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+.file-drop.dragover {
+    background-color: rgba(255,255,255,0.2);
+    border-color: #ff0;
+}
+.selected-files {
+    margin-top: 5px;
+    font-size: 13px;
+}
+button {
+    width: 100%;
+    padding: 10px;
+    background-color: #9b30ff;
+    border: none;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 6px;
+}
+#successMsg {
+    margin-top: 20px;
+    text-align: center;
+    font-weight: bold;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+</style>
+</head>
+<body>
+<div class="container">
+<h2>Zepto R-E Invoice Form</h2>
+<form id="invoiceForm">
+  <div class="form-grid">
+    <div>
+      <label>Rent Start Date:</label>
+      <input type="date" name="rent_start" required>
+    </div>
+    <div>
+      <label>Rent End Date:</label>
+      <input type="date" name="rent_end" required>
+    </div>
+    <div>
+      <label>Invoice Name:</label>
+      <input type="text" name="name" required>
+    </div>
+    <div>
+      <label>Mobile No:</label>
+      <input type="text" name="mobile" pattern="\d{10}" title="10 digit number" required>
+    </div>
+    <div>
+      <label>Email ID:</label>
+      <input type="email" name="email" required>
+    </div>
+    <div>
+      <label>City:</label>
+      <select name="city" required>
+        <option value="">Select City</option>
+        <option>Bengaluru</option>
+        <option>Mumbai</option>
+        <option>Patna</option>
+        <option>Delhi</option>
+      </select>
+    </div>
+    <div>
+      <label>GST Type:</label>
+      <select name="gst_type" required>
+        <option value="">Select GST Type</option>
+        <option>GST</option>
+        <option>NON GST</option>
+      </select>
+    </div>
+    <div>
+      <label>Invoice Sample:</label>
+      <select name="invoice_sample" id="invoice_sample" required>
+        <option value="">Select Sample</option>
+     <option value="/GST_Tax_Invoice.docx">GST Sample</option>
+<option value="/non_gst.docx">NON GST Sample</option>
+
+      </select>
+    </div>
+  </div>
+
+  <!-- Components -->
+  <div class="component">
+    <div class="component-header">
+      <label><input type="checkbox" class="toggle-file" data-name="rent_files[]"> Rent</label>
+      <div class="file-drop disabled">Drag & Drop files or click</div>
+    </div>
+    <div class="selected-files"></div>
+  </div>
+  <div class="component">
+    <div class="component-header">
+      <label><input type="checkbox" class="toggle-file" data-name="maintenance_files[]"> Maintenance</label>
+      <div class="file-drop disabled">Drag & Drop files or click</div>
+    </div>
+    <div class="selected-files"></div>
+  </div>
+  <div class="component">
+    <div class="component-header">
+      <label><input type="checkbox" class="toggle-file" data-name="water_files[]"> Water</label>
+      <div class="file-drop disabled">Drag & Drop files or click</div>
+    </div>
+    <div class="selected-files"></div>
+  </div>
+  <div class="component">
+    <div class="component-header">
+      <label><input type="checkbox" class="toggle-file" data-name="electricity_files[]"> Electricity</label>
+      <div class="file-drop disabled">Drag & Drop files or click</div>
+    </div>
+    <div class="selected-files"></div>
+  </div>
+  <div class="component">
+    <div class="component-header">
+      <label><input type="checkbox" class="toggle-file" data-name="parking_files[]"> Parking</label>
+      <div class="file-drop disabled">Drag & Drop files or click</div>
+    </div>
+    <div class="selected-files"></div>
+  </div>
+
+  <button type="submit">Submit Invoice</button>
+</form>
+<div id="successMsg"></div>
+</div>
+<div id="loader" style="display:none; text-align:center; margin-top:15px;">
+    <div style="border: 4px solid rgba(255,255,255,0.3); border-top: 4px solid white; border-radius: 50%; width: 30px; height: 30px; margin: 0 auto; animation: spin 1s linear infinite;"></div>
+    <div style="margin-top:5px; font-size: 14px;">Submitting...</div>
+</div>
+
+
+<script>
+// Enable/disable drop area
+document.querySelectorAll('.toggle-file').forEach(cb => {
+    cb.addEventListener('change', function(){
+        const drop = this.closest('.component').querySelector('.file-drop');
+        if(this.checked){
+            drop.classList.remove('disabled');
+        } else {
+            drop.classList.add('disabled');
+            drop.dataset.files = '';
+            drop.closest('.component').querySelector('.selected-files').innerText = '';
+        }
+    });
+});
+
+// Drag & Drop logic
+document.querySelectorAll('.file-drop').forEach(drop => {
+    drop.addEventListener('click', () => {
+        if(drop.classList.contains('disabled')) return;
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.multiple = true;
+        input.onchange = () => handleFiles(drop, input.files);
+        input.click();
+    });
+    drop.addEventListener('dragover', e => { 
+        e.preventDefault(); 
+        if(drop.classList.contains('disabled')) return; 
+        drop.classList.add('dragover'); 
+    });
+    drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
+    drop.addEventListener('drop', e => { 
+        e.preventDefault(); 
+        drop.classList.remove('dragover'); 
+        if(drop.classList.contains('disabled')) return; 
+        handleFiles(drop, e.dataTransfer.files); 
+    });
+});
+
+function handleFiles(drop, files){
+    const names = Array.from(files).map(f => f.name);
+    drop.closest('.component').querySelector('.selected-files').innerText = names.join(', ');
+    drop.dataset.files = '';
+    drop.files = files;
+}
+
+// Invoice sample download
+document.getElementById("invoice_sample").addEventListener("change", function() {
+    const file = this.value; // selected file
+    if (file) {
+        const link = document.createElement("a");
+        link.href = file;                // PDF file path
+        link.download = file.split('/').pop(); // filename
+        document.body.appendChild(link);
+        link.click();                    // trigger download
+        document.body.removeChild(link);
+    }
+});
+
+// ------------------ LOADER ------------------
+const loader = document.createElement('div');
+loader.id = 'loader';
+loader.style.display = 'none';
+loader.style.textAlign = 'center';
+loader.style.marginTop = '15px';
+loader.innerHTML = `
+    <div style="border: 4px solid rgba(255,255,255,0.3); border-top: 4px solid white; border-radius: 50%; width: 30px; height: 30px; margin: 0 auto; animation: spin 1s linear infinite;"></div>
+    <div style="margin-top:5px; font-size: 14px;">Submitting...</div>
+`;
+document.getElementById('invoiceForm').after(loader);
+
+// Add spinner animation
+const style = document.createElement('style');
+style.innerHTML = `
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+`;
+document.head.appendChild(style);
+
+// Form submission
+document.getElementById("invoiceForm").addEventListener("submit", async function(e){
+    e.preventDefault();
+    loader.style.display = "block"; // show loader
+
+    const formData = new FormData(this);
+    document.querySelectorAll('.component').forEach(c => {
+        const drop = c.querySelector('.file-drop');
+        if(!drop.classList.contains('disabled') && drop.files){
+            Array.from(drop.files).forEach(f => formData.append(drop.previousElementSibling.querySelector('input[type="checkbox"]').dataset.name, f));
+        }
+    });
+
+    try{
+        const res = await fetch("/submit_invoice", { method: "POST", body: formData });
+        const data = await res.json();
+        document.getElementById("successMsg").innerText = "Thank you! Invoice submitted. Ticket ID: " + data.ticket_id;
+        alert("Invoice Submitted\nTicket ID: " + data.ticket_id);
+        this.reset();
+        document.querySelectorAll('.file-drop').forEach(drop => drop.classList.add('disabled'));
+        document.querySelectorAll('.selected-files').forEach(div => div.innerText = '');
+    } catch(err){
+        console.error(err);
+        document.getElementById("successMsg").innerText = "Error submitting invoice.";
+    } finally {
+        loader.style.display = "none"; // hide loader
+    }
+});
+</script>
+
+</body>
+</html>
