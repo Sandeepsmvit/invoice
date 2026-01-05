@@ -2,37 +2,37 @@ from flask import Flask, request, jsonify
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 from google.oauth2.credentials import Credentials
-from dotenv import load_dotenv
+import os, io, datetime, random, json, traceback
 from werkzeug.utils import secure_filename
-import io, os, datetime, random, json, traceback
 
-# ---------------- LOAD ENV ----------------
-load_dotenv()
+# ---------------- FLASK APP ----------------
+app = Flask(__name__, static_folder='public', static_url_path='')
 
+# ---------------- ENV VARIABLES ----------------
+# Railway injects your secrets as environment variables
 SCOPES = [
     'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/drive.file'
 ]
 
 SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
-
 COMPONENT_COLUMNS = os.getenv(
     "COMPONENT_COLUMNS",
     "Rent,Maintenance,Water,Electricity,Parking"
 ).split(",")
 
-# ---------------- FLASK APP ----------------
-app = Flask(__name__, static_folder='public', static_url_path='')
+GOOGLE_TOKEN = os.getenv("GOOGLE_TOKEN")
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 
 # ---------------- GOOGLE AUTH ----------------
 def load_credentials():
-    token_json = os.getenv("GOOGLE_TOKEN")
-    if not token_json:
+    if not GOOGLE_TOKEN:
         raise Exception("GOOGLE_TOKEN not set.")
 
-    return Credentials.from_authorized_user_info(
-        json.loads(token_json), SCOPES
-    )
+    # Convert JSON string to dict
+    token_info = json.loads(GOOGLE_TOKEN)
+    return Credentials.from_authorized_user_info(token_info, SCOPES)
 
 creds = load_credentials()
 sheet_service = build('sheets', 'v4', credentials=creds)
@@ -57,18 +57,11 @@ def get_or_create_folder(folder_name, parent_id=None):
     if files:
         return files[0]['id']
 
-    metadata = {
-        'name': folder_name,
-        'mimeType': 'application/vnd.google-apps.folder'
-    }
+    metadata = {'name': folder_name, 'mimeType': 'application/vnd.google-apps.folder'}
     if parent_id:
         metadata['parents'] = [parent_id]
 
-    folder = drive_service.files().create(
-        body=metadata,
-        fields='id'
-    ).execute()
-
+    folder = drive_service.files().create(body=metadata, fields='id').execute()
     return folder['id']
 
 # ---------------- ROUTES ----------------
@@ -79,8 +72,6 @@ def index():
 @app.route('/submit_invoice', methods=['POST'])
 def submit_invoice():
     try:
-        print("Submit invoice called")
-
         ticket_id = 'TKT-' + str(random.randint(1000, 9999))
         timestamp = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
@@ -96,7 +87,6 @@ def submit_invoice():
         # -------- DRIVE FOLDERS --------
         MAIN_FOLDER_NAME = 'Re_Landlord_Invoice'
         city_folder_name = city if city else 'Unknown_City'
-
         now = datetime.datetime.now()
         month_folder_name = now.strftime('%B_%Y')
         date_folder_name = now.strftime('%Y-%m-%d')
@@ -112,37 +102,22 @@ def submit_invoice():
         # -------- FILE UPLOAD --------
         for comp in COMPONENT_COLUMNS:
             files = request.files.getlist(f'{comp.lower()}_files[]')
-
             for f in files:
                 safe_name = secure_filename(f.filename)
                 filename = f"{ticket_id}_{safe_name}"
 
-                media = MediaIoBaseUpload(
-                    io.BytesIO(f.read()),
-                    mimetype=f.mimetype,
-                    resumable=False
-                )
-
+                media = MediaIoBaseUpload(io.BytesIO(f.read()), mimetype=f.mimetype, resumable=False)
                 uploaded = drive_service.files().create(
-                    body={
-                        'name': filename,
-                        'parents': [date_folder_id]
-                    },
+                    body={'name': filename, 'parents': [date_folder_id]},
                     media_body=media,
                     fields='id, webViewLink'
                 ).execute()
-
                 component_files[comp].append(uploaded['webViewLink'])
 
         # -------- SHEET ROW --------
-        row = [
-            ticket_id, rent_start, rent_end,
-            name, mobile, email, city, gst_type
-        ]
-
+        row = [ticket_id, rent_start, rent_end, name, mobile, email, city, gst_type]
         for comp in COMPONENT_COLUMNS:
             row.append(', '.join(component_files[comp]))
-
         row.append(timestamp)
 
         sheet_service.spreadsheets().values().append(
@@ -160,4 +135,6 @@ def submit_invoice():
 
 # ---------------- RUN ----------------
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5000)
+    # Railway requires dynamic PORT
+    port = int(os.environ.get("PORT", 8000))
+    app.run(host="0.0.0.0", port=port)
